@@ -27,6 +27,8 @@ install -C -m 0644 "$PROTON/files/lib/wine/x86_64-windows/comdlg32.dll" "$SYS/co
 [ -L "$SYS/comdlg32.dll" ] && rm -- "$SYS/comdlg32.dll"
 install -C -m 0644 "$BASE/comdlg32.dll" "$SYS/comdlg32.dll"
 
+install -C -m 0644 "$BASE/NotoEmoji-Regular.ttf" "$PREFIX/drive_c/windows/Fonts/NotoEmoji-Regular.ttf"
+
 export WINEPREFIX="$PREFIX"
 export GAMEID=umu-kakaotalk
 export STORE=none

@@ -1,0 +1,112 @@
+diff --git a/dlls/win32u/dibdrv/graphics.c b/dlls/win32u/dibdrv/graphics.c
+index 92dea91..0534e06 100644
+--- a/dlls/win32u/dibdrv/graphics.c
++++ b/dlls/win32u/dibdrv/graphics.c
+@@ -45,7 +45,7 @@ enum glyph_type
+ };
+ 
+ #define GLYPH_CACHE_PAGE_SIZE  0x100
+-#define GLYPH_CACHE_PAGES      (0x10000 / GLYPH_CACHE_PAGE_SIZE)
++#define GLYPH_CACHE_PAGES      (0x110000 / GLYPH_CACHE_PAGE_SIZE)
+ 
+ struct cached_font
+ {
+@@ -832,8 +832,14 @@ static void render_string( DC *dc, dib_info *dib, struct cached_font *font, INT
+ 
+     for (i = 0; i < count; i++)
+     {
+-        if (!(glyph = get_cached_glyph( font, str[i], flags )) &&
+-            !(glyph = cache_glyph_bitmap( dc, font, str[i], flags ))) continue;
++        UINT code = str[i];
++        BOOL pair = !(flags & ETO_GLYPH_INDEX) && i + 1 < count &&
++                    ((str[i] & 0xfc00) == 0xd800) && ((str[i + 1] & 0xfc00) == 0xdc00);
++
++        if (pair) code = 0x10000 + ((str[i] - 0xd800) << 10) + (str[i + 1] - 0xdc00);
++
++        if (!(glyph = get_cached_glyph( font, code, flags )) &&
++            !(glyph = cache_glyph_bitmap( dc, font, code, flags ))) continue;
+ 
+         glyph_dib.width       = glyph->metrics.gmBlackBoxX;
+         glyph_dib.height      = glyph->metrics.gmBlackBoxY;
+@@ -853,9 +859,21 @@ static void render_string( DC *dc, dib_info *dib, struct cached_font *font, INT
+             }
+             else
+                 x += dx[ i ];
++            if (pair)
++            {
++                i++;
++                if (flags & ETO_PDY)
++                {
++                    x += dx[ i * 2 ];
++                    y += dx[ i * 2 + 1];
++                }
++                else
++                    x += dx[ i ];
++            }
+         }
+         else
+         {
++            if (pair) i++;
+             x += glyph->metrics.gmCellIncX;
+             y += glyph->metrics.gmCellIncY;
+         }
+diff --git a/dlls/win32u/font.c b/dlls/win32u/font.c
+index 836bcbe..73db803 100644
+--- a/dlls/win32u/font.c
++++ b/dlls/win32u/font.c
+@@ -4271,9 +4271,14 @@ static BOOL font_GetTextExtentExPoint( PHYSDEV dev, const WCHAR *str, INT count,
+     pthread_mutex_lock( &font_lock );
+     for (i = pos = 0; i < count; i++)
+     {
+-        get_glyph_outline( physdev->font, str[i], GGO_METRICS, NULL, &abc, 0, NULL, NULL, physdev->aa_flags );
++        UINT code = str[i];
++        BOOL pair = i + 1 < count && ((str[i] & 0xfc00) == 0xd800) && ((str[i + 1] & 0xfc00) == 0xdc00);
++
++        if (pair) code = 0x10000 + ((str[i] - 0xd800) << 10) + (str[i + 1] - 0xdc00);
++        get_glyph_outline( physdev->font, code, GGO_METRICS, NULL, &abc, 0, NULL, NULL, physdev->aa_flags );
+         pos += abc.abcA + abc.abcB + abc.abcC;
+         dxs[i] = pos;
++        if (pair) dxs[++i] = pos;
+     }
+     pthread_mutex_unlock( &font_lock );
+     return TRUE;
+@@ -6284,7 +6289,9 @@ DWORD WINAPI NtGdiGetGlyphOutline( HDC hdc, UINT ch, UINT format, GLYPHMETRICS *
+     if(!dc) return GDI_ERROR;
+ 
+     dev = GET_DC_PHYSDEV( dc, pGetGlyphOutline );
+-    ret = dev->funcs->pGetGlyphOutline( dev, ch & 0xffff, format, metrics, size, buffer, mat2 );
++    /* Keep code points above the BMP, which the dib driver passes for surrogate pairs. */
++    ret = dev->funcs->pGetGlyphOutline( dev, (format & GGO_GLYPH_INDEX) ? ch & 0xffff : ch,
++                                        format, metrics, size, buffer, mat2 );
+     release_dc_ptr( dc );
+     return ret;
+ }
+diff --git a/dlls/win32u/freetype.c b/dlls/win32u/freetype.c
+index 1b8fb80..8c0380a 100644
+--- a/dlls/win32u/freetype.c
++++ b/dlls/win32u/freetype.c
+@@ -1939,7 +1939,8 @@ static BOOL select_charmap(FT_Face ft_face, FT_Encoding encoding)
+                     cmap2 = ft_face->charmaps[i];
+                     break;
+                 case 3: /* Microsoft */
+-                    cmap3 = ft_face->charmaps[i];
++                    /* Keep the UCS-4 table if there is one: others stop at the BMP. */
++                    if (!cmap3 || cmap3->encoding_id != 10) cmap3 = ft_face->charmaps[i];
+                     break;
+             }
+         }
+diff --git a/dlls/winex11.drv/xim.c b/dlls/winex11.drv/xim.c
+index d0b7c5e..49ff74b 100644
+--- a/dlls/winex11.drv/xim.c
++++ b/dlls/winex11.drv/xim.c
+@@ -113,7 +113,9 @@ void xim_set_result_string( HWND hwnd, const char *str, UINT count )
+     len = ntdll_umbstowcs( str, count, output, count );
+     output[len] = 0;
+ 
+-    post_ime_update( hwnd, 0, NULL, output );
++    /* IBus can send the next preedit before this commit. Keep it, or it stays hidden until the
++     * next preedit draw. */
++    post_ime_update( hwnd, ime_comp_cursor_pos, ime_comp_buf, output );
+ 
+     free( output );
+ }

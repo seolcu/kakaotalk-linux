@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 REPO=seolcu/kakaotalk-linux
-RELEASE=v0.1.0
+RELEASE=v0.2.0
 SETUP_URL=https://app-pc.kakaocdn.net/talk/win32/x64/KakaoTalk_Setup.exe
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE="${XDG_DATA_HOME:-$HOME/.local/share}/kakaotalk-linux"
@@ -56,14 +56,16 @@ if [ -n "${KAKAOTALK_LINUX_ASSETS:-}" ]; then
 else
     ASSETS="$CACHE/assets-$RELEASE"
     mkdir -p "$ASSETS"
-    for name in kakaotalk-helper kakao-ctl.exe comdlg32.dll SHA256SUMS; do
+    for name in kakaotalk-helper kakao-ctl.exe comdlg32.dll win32u.so winex11.so SHA256SUMS; do
         fetch "https://github.com/$REPO/releases/download/$RELEASE/$name" "$ASSETS/$name" ""
     done
     (cd "$ASSETS" && sha256sum -c --status SHA256SUMS) || die "구성 요소 체크섬이 맞지 않아요."
 fi
 install -m 0755 "$ASSETS/kakaotalk-helper" "$BASE/kakaotalk-helper"
 install -m 0644 "$ASSETS/kakao-ctl.exe" "$ASSETS/comdlg32.dll" "$BASE/"
-install -m 0644 "$SRC/versions.env" "$BASE/versions.env"
+install -m 0644 "$SRC/fonts/NotoEmoji-Regular.ttf" "$SRC/versions.env" "$BASE/"
+# Patched Wine modules, built for exactly this Proton version: see wine-patches/.
+install -m 0755 "$ASSETS/win32u.so" "$ASSETS/winex11.so" "$BASE/$PROTON_DIR/files/lib/wine/x86_64-unix/"
 install -m 0755 "$SRC/kakaotalk" "$BIN/kakaotalk"
 
 APP="$BASE/prefix/drive_c/Program Files/Kakao/KakaoTalk/KakaoTalk.exe"

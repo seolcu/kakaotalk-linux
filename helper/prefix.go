@@ -44,9 +44,48 @@ func preparePrefix(prefix string) error {
 			out = append(bytes.TrimRight(out, "\n"), []byte(fmt.Sprintf("\n\n%s %d\n\"NoTrayItemsDisplay\"=dword:00000001\n", policy, time.Now().Unix()))...)
 		}
 	}
-	if bytes.Equal(out, data) {
+	if !bytes.Equal(out, data) {
+		if err := os.WriteFile(path+".tmp", out, 0o644); err != nil {
+			return err
+		}
+		if err := os.Rename(path+".tmp", path); err != nil {
+			return err
+		}
+	}
+	return linkEmojiFont(prefix)
+}
+
+const emojiLink = `NOTOEMOJI-REGULAR.TTF,Noto Emoji\0`
+
+var (
+	fontLinkSection = regexp.MustCompile(`(?s)\[Software\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\FontLink\\\\SystemLink\][^\n]*\n.*?\n\n`)
+	fontLinkValue   = regexp.MustCompile(`(?m)^("[^"\n]+"=str\(7\):")((?:[^"\\\n]|\\.)*)"$`)
+)
+
+// linkEmojiFont makes Noto Emoji a fallback for the fonts KakaoTalk uses. Wine's GDI cannot draw
+// colour fonts, so emoji are monochrome. Above the BMP, this needs the patched win32u.so.
+func linkEmojiFont(prefix string) error {
+	path := filepath.Join(prefix, "system.reg")
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
 		return nil
 	}
+	if err != nil {
+		return err
+	}
+	section := fontLinkSection.Find(data)
+	if section == nil || bytes.Contains(section, []byte("Noto Emoji")) {
+		return nil
+	}
+	updated := fontLinkValue.ReplaceAll(section, []byte(`${1}${2}`+emojiLink+`"`))
+	updated = bytes.TrimRight(updated, "\n")
+	for _, name := range []string{"Malgun Gothic", "맑은 고딕", "Noto Sans CJK KR", "Tahoma", "Segoe UI", "System"} {
+		if !bytes.Contains(updated, []byte(`"`+name+`"=str(7)`)) {
+			updated = append(updated, []byte("\n\""+name+`"=str(7):"`+emojiLink+`"`)...)
+		}
+	}
+	updated = append(updated, "\n\n"...)
+	out := bytes.Replace(data, section, updated, 1)
 	if err := os.WriteFile(path+".tmp", out, 0o644); err != nil {
 		return err
 	}

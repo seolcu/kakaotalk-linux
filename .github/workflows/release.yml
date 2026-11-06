@@ -8,10 +8,28 @@ permissions:
   contents: write
 
 jobs:
+  wine-modules:
+    runs-on: ubuntu-24.04
+    container: registry.gitlab.steamos.cloud/steamrt/steamrt4/sdk:latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/build-wine-modules.sh wine-out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wine-modules
+          path: |
+            wine-out/win32u.so
+            wine-out/winex11.so
+
   build:
+    needs: wine-modules
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wine-modules
+          path: dist
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
