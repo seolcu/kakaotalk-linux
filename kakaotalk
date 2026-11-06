@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Runs KakaoTalk with Proton, or brings up its window if it is already running.
+set -Eeuo pipefail
+
+BASE="${XDG_DATA_HOME:-$HOME/.local/share}/kakaotalk-linux"
+# shellcheck source=/dev/null
+source "$BASE/versions.env"
+PROTON="$BASE/$PROTON_DIR"
+PREFIX="$BASE/prefix"
+HELPER="$BASE/kakaotalk-helper"
+SYS="$PREFIX/drive_c/windows/system32"
+APP="$PREFIX/drive_c/Program Files/Kakao/KakaoTalk"
+
+export KAKAO_WINE="$PROTON/files/bin/wine"
+export KAKAO_PREFIX="$PREFIX"
+export KAKAO_CTL="$BASE/kakao-ctl.exe"
+
+if "$HELPER" running; then
+    exec "$HELPER" send open
+fi
+
+"$HELPER" prepare-prefix "$PREFIX"
+
+# File dialogs go to the desktop's chooser. KakaoTalk loads DLLs only from system32, so the proxy
+# replaces comdlg32 there, and Proton's own copy sits beside it under another name.
+install -C -m 0644 "$PROTON/files/lib/wine/x86_64-windows/comdlg32.dll" "$SYS/comdlg32_wine.dll"
+[ -L "$SYS/comdlg32.dll" ] && rm -- "$SYS/comdlg32.dll"
+install -C -m 0644 "$BASE/comdlg32.dll" "$SYS/comdlg32.dll"
+
+export WINEPREFIX="$PREFIX"
+export GAMEID=umu-kakaotalk
+export STORE=none
+export PROTONPATH="$PROTON"
+# Xalia is a gamepad UI helper that costs about 127 MB here.
+export PROTON_USE_XALIA=0
+export WINEDLLOVERRIDES="comdlg32=n,b;winemenubuilder.exe=d${WINEDLLOVERRIDES:+;$WINEDLLOVERRIDES}"
+export KAKAO_PORTAL_HELPER="$HELPER"
+
+setsid -f "$HELPER" tray >/dev/null 2>&1 || true
+cd "$APP"
+exec python3 -I "$BASE/umu/umu-run" "$APP/KakaoTalk.exe"

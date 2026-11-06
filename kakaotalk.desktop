@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=KakaoTalk
+Name[ko]=카카오톡
+Comment=Unofficial KakaoTalk launcher using Proton
+Comment[ko]=Proton으로 카카오톡 실행 (비공식)
+Exec=@BIN@/kakaotalk
+Icon=kakaotalk
+Terminal=false
+Categories=Network;InstantMessaging;
+StartupWMClass=steam_app_kakaotalk
