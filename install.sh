@@ -48,6 +48,7 @@ if [ ! -f "$BASE/$PROTON_DIR/proton" ]; then
     fetch "https://github.com/GloriousEggroll/proton-ge-custom/releases/download/$PROTON_TAG/$PROTON_TAG-x86_64.tar.gz" \
         "$CACHE/$PROTON_TAG.tar.gz" "$PROTON_SHA256"
     tar xzf "$CACHE/$PROTON_TAG.tar.gz" -C "$BASE"
+    rm -f -- "$CACHE/$PROTON_TAG.tar.gz"
 fi
 
 say "kakaotalk-linux 구성 요소 설치"
