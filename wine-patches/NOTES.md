@@ -1,8 +1,8 @@
-# Upstream status
+# Notes on the Wine patch
 
-`kakaotalk.patch` fixes two Wine bugs. Neither is fixed on Wine master as of 2026-11-06, so both
-should go upstream through a merge request on https://gitlab.winehq.org/wine/wine. Once merged
-and in a Proton release, the patch and the module build can be dropped.
+`kakaotalk.patch` works around two Wine bugs. Neither is fixed on Wine master as of 2026-11-06.
+This project does not plan to submit the patch upstream. If Wine fixes them, drop the patch and
+the module build.
 
 ## 1. winex11: preedit hidden after an XIM commit
 
