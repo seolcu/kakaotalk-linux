@@ -48,6 +48,8 @@ Ubuntu에는 기본으로 들어 있어요.
 
 터미널에서 `kakaotalk`을 실행하면 오류 메시지를 볼 수 있어요. 이슈를 올릴 때 배포판, 데스크톱 환경과 함께 적어 주세요.
 
+Wayland에서 쓰다가 갑자기 한글 입력이 안 되면 IBus가 재시작되면서 X11용 입력 서버가 꺼진 거예요. `setsid -f /usr/libexec/ibus-x11`로 다시 켜고, 그래도 안 되면 카카오톡을 다시 실행하세요.
+
 공용 Wi-Fi에서 다른 사람의 Mac이 소리 출력 장치로 뜬다면 PipeWire의 AirPlay 자동 발견 때문이에요.
 쓰지 않는다면 `~/.config/pipewire/pipewire.conf.d/90-disable-raop.conf`에 아래 내용을 넣고 다시 로그인하세요.
 
