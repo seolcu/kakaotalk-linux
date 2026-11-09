@@ -63,6 +63,11 @@ context.properties = { module.raop = false }
 
 이 PC의 대화 데이터도 함께 지워져요.
 
+## 더 보기
+
+검증 환경을 포함한 요약과 다른 리눅스·셀프호스팅 문제 해결 노트는 [blog.seolcu.com](https://blog.seolcu.com/projects/kakaotalk-linux/)에 정리돼 있어요.
+도움이 되었다면 ⭐ Star나 [GitHub Sponsors](https://github.com/sponsors/seolcu)로 응원해 주세요.
+
 ## 라이선스
 
 이 프로젝트의 코드는 MIT 라이선스예요. 릴리스의 `win32u.so`, `winex11.so`는 Wine(LGPL 2.1 이상)을 패치한 빌드로,
