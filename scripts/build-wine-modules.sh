@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds patched win32u.so and winex11.so for the GE-Proton in versions.env.
+# Builds patched win32u.so, winex11.so and riched20.dll for the GE-Proton in versions.env.
 # Run inside registry.gitlab.steamos.cloud/steamrt/steamrt4/sdk, the compiler Proton itself uses.
 # Usage: build-wine-modules.sh <output dir>. Needs a few GB of disk and about 15 minutes.
 set -Eeuo pipefail
@@ -8,6 +8,10 @@ OUT="$(mkdir -p "$1" && cd "$1" && pwd)"
 WORK="${WORK:-/tmp/kakaotalk-wine-build}"
 # shellcheck source=versions.env
 source "$ROOT/versions.env"
+
+# riched20.dll is a PE module; the SDK image has no mingw by default.
+command -v x86_64-w64-mingw32-gcc >/dev/null ||
+    { apt-get update -qq && apt-get install -y -qq gcc-mingw-w64-x86-64 >/dev/null; }
 
 git config --global user.email build@localhost
 git config --global user.name build
@@ -41,13 +45,15 @@ XDG_CACHE_HOME=/tmp python3 dlls/winevulkan/make_vulkan -x vk.xml -X video.xml
 tools/make_requests
 tools/make_specfiles || true
 mkdir -p build && cd build
-../configure --enable-win64 --without-mingw --disable-tests --without-gstreamer --without-opencl \
+../configure --enable-win64 --enable-archs=x86_64 --disable-tests --without-gstreamer --without-opencl \
     --without-sane --without-cups --without-v4l2 --without-gphoto --without-pcap --without-oss \
     --without-alsa --without-pulse --without-netapi --without-sdl --without-usb --without-unwind \
     --without-krb5 --without-gssapi > "$OUT/configure.log" 2>&1
-make -j"$(nproc)" dlls/win32u/win32u.so dlls/winex11.drv/winex11.so > "$OUT/make.log" 2>&1 \
+make -j"$(nproc)" dlls/win32u/win32u.so dlls/winex11.drv/winex11.so \
+    dlls/riched20/x86_64-windows/riched20.dll > "$OUT/make.log" 2>&1 \
     || { grep -E 'error|\*\*\*' "$OUT/make.log" | head -20; exit 1; }
 strip -o "$OUT/win32u.so" dlls/win32u/win32u.so
 strip -o "$OUT/winex11.so" dlls/winex11.drv/winex11.so
-chmod 0755 "$OUT/win32u.so" "$OUT/winex11.so"
+x86_64-w64-mingw32-strip -o "$OUT/riched20.dll" dlls/riched20/x86_64-windows/riched20.dll
+chmod 0755 "$OUT/win32u.so" "$OUT/winex11.so" "$OUT/riched20.dll"
 echo modules_ok

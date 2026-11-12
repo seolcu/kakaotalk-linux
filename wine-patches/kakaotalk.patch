@@ -110,3 +110,23 @@ index d0b7c5e..49ff74b 100644
  
      free( output );
  }
+diff --git a/dlls/riched20/editor.c b/dlls/riched20/editor.c
+--- a/dlls/riched20/editor.c
++++ b/dlls/riched20/editor.c
+@@ -3942,6 +3942,8 @@
+     break;
+   case WM_SETFOCUS:
+     editor->bHaveFocus = TRUE;
++    /* cursor_coords() needs wrapped paragraphs. */
++    ME_WrapMarkedParagraphs(editor);
+     create_caret(editor);
+     update_caret(editor);
+     ITextHost_TxNotify( editor->texthost, EN_SETFOCUS, NULL );
+@@ -4158,6 +4160,7 @@
+   {
+     ME_DeleteSelection(editor);
+     editor->imeStartIndex=-1;
++    ME_UpdateRepaint(editor, FALSE);
+     return 0;
+   }
+   case EM_GETOLEINTERFACE:
