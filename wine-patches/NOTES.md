@@ -1,6 +1,6 @@
 # Notes on the Wine patch
 
-`kakaotalk.patch` works around three Wine bugs. None is fixed on Wine master as of 2026-11-12.
+`kakaotalk.patch` works around three Wine bugs (none fixed on Wine master as of 2026-11-12) and turns off one GE-Proton feature (section 4).
 This project does not plan to submit the patch upstream. If Wine fixes them, drop the patch and
 the module build.
 
@@ -54,3 +54,20 @@ Fix: call `ME_UpdateRepaint` after the deletion in `WM_IME_ENDCOMPOSITION`, and 
 paragraphs at the start of `WM_SETFOCUS` before positioning the caret.
 
 Reproduce: in a chat, type a Hangul syllable and, before finishing it, click 답장 on a message.
+
+## 4. win32u: GE-Proton's SNI tray adds a second tray icon
+
+Not a Wine bug: GE-Proton 11 carries `em-fixups/0001-winewayland-add-SNI-tray-icons-…`, which
+makes `Shell_NotifyIconW` register the app's icon as a StatusNotifierItem from inside the process.
+That path skips explorer's tray, so the prefix's `NoTrayItemsDisplay=1` no longer hides it, and
+next to `kakaotalk-helper`'s icon a second "KakaoTalk" icon appears. GE's `0056` already falls back
+to explorer's XEmbed tray on Mutter, which is why GNOME showed one icon and KDE Plasma two
+(found 2026-11-18, Fedora 45 KDE).
+
+Fix: make that fallback unconditional in `sni_notify_icon` (`if (TRUE || …Mutter…)`), so every
+desktop takes the explorer path and the policy applies again. If a GE update drops the SNI
+patches, drop this hunk.
+
+Reproduce: KDE Plasma, start KakaoTalk; `busctl --user get-property org.kde.StatusNotifierWatcher
+/StatusNotifierWatcher org.kde.StatusNotifierWatcher RegisteredStatusNotifierItems` lists both the
+helper's item and one owned by `KakaoTalk.exe` with an Id like `wine-0x1007e-222`.

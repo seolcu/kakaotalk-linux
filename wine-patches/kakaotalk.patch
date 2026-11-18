@@ -130,3 +130,20 @@ diff --git a/dlls/riched20/editor.c b/dlls/riched20/editor.c
      return 0;
    }
    case EM_GETOLEINTERFACE:
+diff --git a/dlls/win32u/sni.c b/dlls/win32u/sni.c
+--- a/dlls/win32u/sni.c
++++ b/dlls/win32u/sni.c
+@@ -1223,9 +1223,11 @@ LRESULT sni_notify_icon( HWND owner, UINT msg, NOTIFYICONDATAW *nid )
+     /* GNOME's AppIndicator host requires a D-Bus menu and already translates
+      * double-clicks into Activate. Use explorer's XEmbed path on Mutter/X11;
+      * our native-menu SNI backend cannot preserve those interactions there. */
+-    if (user_driver->pHasWindowManager( "Mutter" ))
++    /* kakaotalk-linux: always. kakaotalk-helper draws the tray icon, and the
++     * explorer path honours NoTrayItemsDisplay; SNI would add a second icon. */
++    if (TRUE || user_driver->pHasWindowManager( "Mutter" ))
+     {
+-        if (msg == NIM_ADD) TRACE( "using XEmbed tray instead of SNI on Mutter\n" );
++        if (msg == NIM_ADD) TRACE( "using explorer tray instead of SNI\n" );
+         return -1;
+     }
+ 
