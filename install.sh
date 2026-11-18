@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 REPO=seolcu/kakaotalk-linux
-RELEASE=v0.3.0
+RELEASE=v0.3.1
 SETUP_URL=https://app-pc.kakaocdn.net/talk/win32/x64/KakaoTalk_Setup.exe
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE="${XDG_DATA_HOME:-$HOME/.local/share}/kakaotalk-linux"
