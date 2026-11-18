@@ -21,7 +21,7 @@ cd kakaotalk-linux
 > 설치에는 `git`도 필요해요. 없다면 GitHub의 **Code → Download ZIP**으로 받아 압축을 풀고
 > 그 폴더에서 `./install.sh`를 실행해도 돼요.
 
-필요한 것: x86_64 PC, `python3`, `curl`, `tar`, 한글 글꼴
+필요한 것: x86_64 PC, `python3`, `curl`, `tar`, 한글 글꼴, 32비트 glibc(Fedora `glibc.i686`, Ubuntu `libc6:i386`. Steam이 깔려 있으면 이미 있어요)
 
 **GNOME 사용자:** 트레이 아이콘을 보려면
 [AppIndicator 확장](https://extensions.gnome.org/extension/615/appindicator-support/)이 필요해요.

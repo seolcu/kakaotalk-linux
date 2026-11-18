@@ -34,6 +34,12 @@ say "설치 조건 확인"
 for tool in curl tar sha256sum python3 install; do
     command -v "$tool" >/dev/null || die "$tool 이(가) 필요해요. 패키지 관리자로 설치해 주세요."
 done
+# Proton's wine starts its 32-bit loader first, so the tray's kakao-ctl (run outside the runtime) needs
+# 32-bit glibc. Without it every tray command fails silently. Steam installs it, which hid this.
+[ -e /lib/ld-linux.so.2 ] || die "32비트 glibc가 필요해요 (트레이 메뉴용).
+  Fedora: sudo dnf install glibc.i686
+  Ubuntu/Debian: sudo dpkg --add-architecture i386 && sudo apt update && sudo apt install libc6:i386
+  Arch: multilib 저장소를 켜고 sudo pacman -S lib32-glibc"
 fc-list :lang=ko 2>/dev/null | grep -q . || printf '주의: 한글 글꼴이 없어요. Noto Sans CJK 글꼴 설치를 권해요.\n'
 
 mkdir -p "$BASE" "$BIN" "$APPS" "$ICONS" "$CACHE"
