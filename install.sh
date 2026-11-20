@@ -95,7 +95,26 @@ chmod 0644 "$APPS/kakaotalk.desktop"
 command -v update-desktop-database >/dev/null && update-desktop-database "$APPS" 2>/dev/null || true
 command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q "${ICONS%/256x256/apps}" 2>/dev/null || true
 
+# fcitx5 offers XIM clients on-the-spot preedit only with UseOnTheSpot=True (off by default), so
+# otherwise the syllable being composed shows in fcitx5's own popup instead of the message box.
+# The style list is fixed when fcitx5 starts; KWin may own the process, so ask for a re-login.
+FCITX_RELOGIN=
+if command -v fcitx5 >/dev/null; then
+    XIM_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/fcitx5/conf/xim.conf"
+    if ! grep -qx 'UseOnTheSpot=True' "$XIM_CONF" 2>/dev/null; then
+        say "fcitx5 설정: 조합 중인 글자를 입력란 안에 표시"
+        mkdir -p "$(dirname "$XIM_CONF")"
+        if grep -q '^UseOnTheSpot=' "$XIM_CONF" 2>/dev/null; then
+            sed -i 's/^UseOnTheSpot=.*/UseOnTheSpot=True/' "$XIM_CONF"
+        else
+            printf 'UseOnTheSpot=True\n' >> "$XIM_CONF"
+        fi
+        FCITX_RELOGIN=1
+    fi
+fi
+
 say "설치 완료. 앱 메뉴에서 '카카오톡'을 실행하세요."
+[ -z "$FCITX_RELOGIN" ] || printf '\nfcitx5 설정을 바꿨어요. 한글 조합이 입력란 안에 보이도록 한 번 로그아웃했다가 다시 로그인하세요.\n'
 case "${XDG_CURRENT_DESKTOP:-}" in
     *GNOME*)
         if ! gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
